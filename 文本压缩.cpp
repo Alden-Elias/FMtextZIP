@@ -22,6 +22,16 @@ struct HCTNode {
 	HCTNode(char _ch, HCTNode *_left, HCTNode *_right): ch(_ch), left(_left), right(_right) {}
 };
 
+struct HCANode {
+	char ch;
+	int left;
+	int right;
+	HCANode(): ch(0), left(-1), right(-1) {}
+	HCANode(char _ch): ch(_ch), left(-1), right(-1) {}
+	HCANode(int _left, int _right): ch(0), left(_left), right(_right) {}
+	HCANode(char _ch, int _left, int _right): ch(_ch), left(_left), right(_right) {}
+};
+
 
 
 
@@ -178,6 +188,21 @@ unordered_map<char, int> str2freq(string &s) {
 	return ans;
 }
 
+//将哈夫曼树转换为数组形式
+void HTree2HArry(HCTNode *root, vector<HCANode *> &HArry) {
+	HCANode *node = new HCANode(root->ch);
+	HArry.push_back(node);
+
+	if (root->left) {
+		node->left = HArry.size();
+		HTree2HArry(root->left, HArry);
+	}
+	if (root->right) {
+		node->right = HArry.size();
+		HTree2HArry(root->right, HArry);
+	}
+}
+
 int main(int argc, const char *argv[]) {
 	ifstream fin;
 	ofstream fout;
@@ -223,34 +248,23 @@ int main(int argc, const char *argv[]) {
 
 	//通过哈夫曼树还原文本
 	cout << getOrgText(compText, root) << endl;
-	string freqStr = freq2str(freq).substr(1);
 
 
-	unordered_map<char, int> m = str2freq(freqStr);
-	HCTNode *orgRoot = getHCodeTree(m);
-	unordered_map<char, string> orgHCode;
-	getHCode(orgRoot, "", orgHCode);
+	//通过恢复哈夫曼树
+//	string freqStr = freq2str(freq).substr(1);
+//	unordered_map<char, int> m = str2freq(freqStr);
+//	HCTNode *orgRoot = getHCodeTree(m);
+//	unordered_map<char, string> orgHCode;
+//	getHCode(orgRoot, "", orgHCode);
 
-
-	cout << "*********************" << endl;
-	for (auto &t : HCode) {
-		cout << t.first << " " << t.second << endl;
+	vector<HCANode *>  HArry;
+	HTree2HArry(root, HArry);
+	cout << "**********************" << endl;
+	cout << "len = " << HArry.size() << endl;
+	for (auto &t : HArry) {
+		cout << t->ch << " " << t->left << " " << t->right << endl;
 	}
-	cout << "*********************" << endl;
-	for (auto &t : orgHCode) {
-		cout << t.first << " " << t.second << endl;
-	}
-	cout << "*********************" << endl;
-
-//	cout << "*********************" << endl;
-//	for (auto &t : freq_char) {
-//		cout << t.first << " " << t.second << endl;
-//	}
-//	cout << "*********************" << endl;
-//	for (auto &t : m) {
-//		cout << t.first << " " << t.second << endl;
-//	}
-//	cout << "*********************" << endl;
+	cout << "**********************" << endl;
 
 	fin.close();
 	fout.close();
