@@ -22,6 +22,7 @@ struct HCTNode {
 	HCTNode(char _ch, HCTNode *_left, HCTNode *_right): ch(_ch), left(_left), right(_right) {}
 };
 
+//顺序哈夫曼树节点
 struct HCANode {
 	char ch;
 	int left;
@@ -31,7 +32,6 @@ struct HCANode {
 	HCANode(int _left, int _right): ch(0), left(_left), right(_right) {}
 	HCANode(char _ch, int _left, int _right): ch(_ch), left(_left), right(_right) {}
 };
-
 
 
 
@@ -48,11 +48,7 @@ unordered_map<char, int> getFreq(string &text) {
 //通过词频构建哈夫曼树
 HCTNode *getHCodeTree(unordered_map<char, int> &freq) {
 	priority_queue <pair<int, HCTNode *>, vector<pair<int, HCTNode *>>, greater<pair<int, HCTNode *>>> q;
-//	priority_queue < pair<int, HCTNode *>, vector<pair<int, HCTNode *>>, decltype([](const auto & a, const auto & b) {
-//		if (a.first != b.first)
-//			return a.first < b.first;
-//		return (a.second->ch) < (b.second->ch);
-//	} ) > q;
+
 	for (auto &[ch, f] : freq) {
 		q.emplace(f, new HCTNode(ch));
 	}
@@ -69,7 +65,7 @@ HCTNode *getHCodeTree(unordered_map<char, int> &freq) {
 }
 
 
-//通过哈夫曼树构建哈夫曼编码
+//通过树状存储哈夫曼树构建哈夫曼编码
 void getHCode(HCTNode *root, string u, unordered_map<char, string> &HCode) {
 	if (!root)
 		return;
@@ -78,6 +74,18 @@ void getHCode(HCTNode *root, string u, unordered_map<char, string> &HCode) {
 	}
 	getHCode(root->left, u + "1", HCode);
 	getHCode(root->right, u + "0", HCode);
+}
+
+//通过顺序存储哈夫曼树构建哈夫曼编码
+void getHCode(vector<HCANode *> &arry, int idx, string u, unordered_map<char, string> &HCode) {
+	if (idx == -1)
+		return;
+	if (arry[idx]->ch) {
+		HCode[arry[idx]->ch] = u;
+	}
+
+	getHCode(arry, arry[idx]->left, u + "1", HCode);
+	getHCode(arry, arry[idx]->right, u + "0", HCode);
 }
 
 
@@ -126,7 +134,20 @@ string getCompFileName(string fileName) {
 	return fileName.substr(0, idx) + ".cod";
 }
 
-//解压压缩的文本
+//获得解压缩文本的文件名
+string getDecompFileName(string fileName) {
+	int len = fileName.length();
+	long long idx = len - 1;
+
+	while (idx >= 0 && fileName[idx] != '.')
+		idx--;
+	if (!idx)
+		return fileName + ".txt";
+
+	return fileName.substr(0, idx) + ".txt";
+}
+
+//通过树状哈夫曼树解压压缩的文本
 string getOrgText(string &compText, HCTNode *root) {
 	string orgText;
 	long long idx = 0;
@@ -145,6 +166,25 @@ string getOrgText(string &compText, HCTNode *root) {
 	return orgText;
 }
 
+//通过顺序哈夫曼树解压压缩的文本
+string getOrgText(string &compText, vector<HCANode *> HArry) {
+	string orgText;
+	long long idx = 0;
+	int len = compText.length();
+
+	HCANode *tmp = HArry[0];
+	for (long long idx = 0; (idx / 8) < len; idx++) {
+		tmp = (compText[idx / 8] & (1 << (idx & 7)) ? HArry[tmp->left] : HArry[tmp->right]);
+
+		if (tmp->ch) {
+			orgText.push_back(tmp->ch);
+			tmp = HArry[0];
+		}
+	}
+
+	return orgText;
+}
+
 //将int按位分割为四位的string
 string num2str(int num) {
 	string ans(4, 0);
@@ -155,6 +195,7 @@ string num2str(int num) {
 	return ans;
 }
 
+
 //将四位字符串转换为int
 int str2num(string s) {
 	int ans = 0;
@@ -162,31 +203,6 @@ int str2num(string s) {
 	return ans;
 }
 
-//将当前词频信息转换为string
-string freq2str(unordered_map<char, int> &freq) {
-	string ans;
-	ans.push_back((char)(freq.size()));
-	for (auto &t : freq) {
-		ans.push_back(t.first);
-		ans += num2str(t.second);
-	}
-	return ans;
-}
-
-
-//将词频字符串转换为词频表
-unordered_map<char, int> str2freq(string &s) {
-	int len = s.length();
-	unordered_map<char, int> ans;
-	if (!len || len % 5)
-		return ans;
-
-	for (int i = 0; i < len; i += 5) {
-		ans.emplace(s[i], str2num(s.substr(i + 1, 4)));
-	}
-
-	return ans;
-}
 
 //将哈夫曼树转换为数组形式
 void HTree2HArry(HCTNode *root, vector<HCANode *> &HArry) {
@@ -203,69 +219,141 @@ void HTree2HArry(HCTNode *root, vector<HCANode *> &HArry) {
 	}
 }
 
-int main(int argc, const char *argv[]) {
+//将顺序哈夫曼树转换字符串
+string HArry2str(vector<HCANode *> &HArry) {
+	string ans = num2str(HArry.size());
+	for (auto &node : HArry) {
+		ans.push_back(node->ch);
+		ans += num2str(node->left) + num2str(node->right);
+	}
+	return ans;
+}
+
+//将字符串还原为顺序哈夫曼树
+vector<HCANode *> str2HArry(string &s) {
+	vector<HCANode *> ans;
+	int len = s.length();
+	if (!len || len % 9)
+		return ans;
+	for (int i = 0;  i < len; i += 9) {
+		ans.push_back(new HCANode(s[i], str2num(s.substr(i + 1, 4)), str2num(s.substr(i + 5, 4))));
+	}
+	return ans;
+}
+
+bool compress(string fileName) {
 	ifstream fin;
 	ofstream fout;
 
+
 	//文件输入
-	if (argc > 1) {
-		fin.open(argv[1]);
-		if (!fin.is_open()) {
-			cout << "文件读取失败！" << endl;
-			return 0;
-		}
-		fout.open(getCompFileName(argv[1]), ios::binary);
+	fin.open(fileName);
+	if (!fin.is_open()) {
+		cout << "文件读取失败！" << endl;
+		return false;
 	}
+	fout.open(getCompFileName(fileName));
 
+
+	//读取文本
 	string text;
-	if (argc > 1) {
-		stringstream buffer;
-		buffer << fin.rdbuf();
-		text = buffer.str();
-	} else {
-		string tmp_str;
-		while (getline(cin, tmp_str)) {
-			text += (tmp_str + "\n");
-		}
-	}
+	stringstream buffer;
+	buffer << fin.rdbuf();
+	text = buffer.str();
 
-//	buildHCode();
 
+	//根据词频创建编码表
 	unordered_map<char, int> freq = getFreq(text);
 	HCTNode *root = getHCodeTree(freq);
 	unordered_map<char, string> HCode;
 	getHCode(root, "", HCode);
 
 
-
-	//压缩后的文本
-	string compText = compressText(text, HCode);
-	if (argc > 1)
-		fout.write(compText.c_str(), compText.length());
-	else
-		cout.write(compText.c_str(), compText.length());
-
-
-	//通过哈夫曼树还原文本
-	cout << getOrgText(compText, root) << endl;
-
-
-	//通过恢复哈夫曼树
-//	string freqStr = freq2str(freq).substr(1);
-//	unordered_map<char, int> m = str2freq(freqStr);
-//	HCTNode *orgRoot = getHCodeTree(m);
-//	unordered_map<char, string> orgHCode;
-//	getHCode(orgRoot, "", orgHCode);
-
+	//将顺序化哈夫曼树
 	vector<HCANode *>  HArry;
 	HTree2HArry(root, HArry);
-	cout << "**********************" << endl;
-	cout << "len = " << HArry.size() << endl;
-	for (auto &t : HArry) {
-		cout << t->ch << " " << t->left << " " << t->right << endl;
-	}
-	cout << "**********************" << endl;
+	string HArrystr = HArry2str(HArry);
 
+
+	//根据编码表压缩文本并存入哈夫曼树作为压缩结果
+	string compText = HArrystr + compressText(text, HCode);
+
+
+	//将结果输出
+	fout.write(compText.c_str(), compText.length());
+
+
+	//数据流关闭
 	fin.close();
 	fout.close();
+	return true;
+}
+
+bool decompress(string fileName) {
+	ifstream fin;
+	ofstream fout;
+
+	//文件输入
+	fin.open(fileName);
+	if (!fin.is_open()) {
+		cout << "文件读取失败！" << endl;
+		return false;
+	}
+	fout.open(getDecompFileName(fileName));
+
+
+	//读取压缩文本
+	string text;
+	stringstream buffer;
+	buffer << fin.rdbuf();
+	text = buffer.str();
+
+
+	//将压缩文件各组件分割出来
+	int len = str2num(text.substr(0, 4));
+	string HArrystr = text.substr(4, len);
+	string compText = text.substr(4 + len);
+
+
+	//通过压缩文件中的信息恢复文本
+	vector<HCANode *> orgHArry = str2HArry(HArrystr);
+	string orgText = getOrgText(compText, orgHArry);
+
+
+	//结果输出
+	fout.write(compText.c_str(), compText.length());
+
+
+	//数据流关闭
+	fin.close();
+	fout.close();
+	return true;
+}
+
+void help() {
+	cout << "* -h\t\t\t帮助" << endl;
+	cout << "* -zip filename\t\t压缩" << endl;
+	cout << "* -unzip filename\t解压" << endl;
+}
+
+int main(int argc, const char *argv[]) {
+	if (argc <= 1) {
+		cout << "请输入参数，输入'-h'获得帮助" << endl;
+	} else if (!strcmp(argv[1], "-h")) {
+		help();
+	} else if (!strcmp(argv[1], "-zip") && argc >= 3) {
+		if (!compress(argv[2]))
+			cout << "压缩失败" << endl;
+		else
+			cout << "压缩成功" << endl;
+	} else if (!strcmp(argv[1], "-unzip") && argc >= 3) {
+		if (!decompress(argv[2]))
+			cout << "解压失败" << endl;
+		else
+			cout << "解压成功" << endl;
+	} else {
+		cout << "参数错误，输入'-h'获得帮助" << endl;
+	}
+
+	return 0;
 }
