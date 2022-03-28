@@ -62,28 +62,32 @@ string HArry2str(vector<HCANode *> &HArry);
 vector<HCANode *> str2HArry(string &s);
 
 
-bool compress(string fileName);
-bool decompress(string fileName);
+bool compress(string &fileName, string &passwd);
+bool decompress(string &fileName, string &passwd);
 void help();
 
 
 int main(int argc, const char *argv[]) {
+	string parameter = (argc > 1 ? argv[1] : "");
+	string fileName = (argc > 2 ? argv[2] : "");
+	string passwd = (argc > 3 ? argv[3] : "");
+
 	if (argc <= 1) {
-		cout << "请输入参数，输入'-h'获得帮助" << endl;
-	} else if (!strcmp(argv[1], "-h")) {
+		cout << "Please enter parameters, enter '-h' for help." << endl;
+	} else if (parameter == "-h") {
 		help();
-	} else if (!strcmp(argv[1], "-zip") && argc >= 3) {
-		if (!compress(argv[2]))
-			cout << "压缩失败" << endl;
+	} else if (parameter == "-zip" && argc >= 3) {
+		if (!compress(fileName, passwd))
+			cout << "Compress failed !" << endl;
 		else
-			cout << "压缩成功" << endl;
-	} else if (!strcmp(argv[1], "-unzip") && argc >= 3) {
-		if (!decompress(argv[2]))
-			cout << "解压失败" << endl;
+			cout << "Compress success !" << endl;
+	} else if (parameter == "-unzip" && argc >= 3) {
+		if (!decompress(fileName, passwd))
+			cout << "Decompress failed !" << endl;
 		else
-			cout << "解压成功" << endl;
+			cout << "Decompress success !" << endl;
 	} else {
-		cout << "参数错误，输入'-h'获得帮助" << endl;
+		cout << "Incorrect parameter, enter '-h' for help." << endl;
 	}
 //	compress("./text.txt");
 //	decompress("./text.cod");
@@ -275,7 +279,23 @@ vector<HCANode *> str2HArry(string &s) {
 	return ans;
 }
 
-bool compress(string fileName) {
+bool encipher(string &text, string &passwd) {
+	int len1 = text.size(), len2 = passwd.size();
+	if (len2 > len1)
+		return false;
+
+	for (int i = 0; i < len2; i++) {
+		text[i] ^= passwd[i];
+	}
+
+	return true;
+}
+
+bool dencipher(string &text, string &passwd) {
+	return encipher(text, passwd);
+}
+
+bool compress(string &fileName, string &passwd) {
 	ifstream fin;
 	ofstream fout;
 
@@ -313,6 +333,15 @@ bool compress(string fileName) {
 	string compText = HArrystr + compressText(text, HCode);
 
 
+	//加密压缩
+	if (passwd != "") {
+		if (encipher(compText, passwd)) {
+			cout << "Encipher success !" << endl;
+		} else {
+			cout << "Encipher failed !" << endl;
+		}
+	}
+
 	//将结果输出
 	fout.write(compText.c_str(), compText.length());
 
@@ -323,14 +352,14 @@ bool compress(string fileName) {
 	return true;
 }
 
-bool decompress(string fileName) {
+bool decompress(string &fileName, string &passwd) {
 	ifstream fin;
 	ofstream fout;
 
 	//文件输入
 	fin.open(fileName, ifstream::binary);
 	if (!fin.is_open()) {
-		cout << "文件读取失败！" << endl;
+		cout << "file read error !" << endl;
 		return false;
 	}
 	fout.open(getDecompFileName(fileName), ofstream::binary);
@@ -342,6 +371,10 @@ bool decompress(string fileName) {
 	buffer << fin.rdbuf();
 	text = buffer.str();
 
+	//解密
+	if (passwd != "") {
+		dencipher(text, passwd);
+	}
 
 	//将压缩文件各组件分割出来
 	int len = str2num(text.substr(0, 4));
@@ -368,7 +401,11 @@ bool decompress(string fileName) {
 }
 
 void help() {
-	cout << "* -h\t\t\t帮助" << endl;
-	cout << "* -zip filename\t\t压缩" << endl;
-	cout << "* -unzip filename\t解压" << endl;
+	cout << "* -h\t\t\tGet help" << endl << endl;
+	cout << "* -zip filename\t\tCompress" << endl;
+	cout << "\t\t\t-filename" << endl;
+	cout << "\t\t\t-passwd" << endl << endl;
+	cout << "* -unzip filename\tDecompress" << endl;
+	cout << "\t\t\t-filename" << endl;
+	cout << "\t\t\t-passwd" << endl << endl;
 }
