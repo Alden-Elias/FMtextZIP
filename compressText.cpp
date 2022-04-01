@@ -201,12 +201,12 @@ bool decompress(string &fileName, string &passwd) {
 
 void help() {
 	cout << "* -h\t\t\tGet help" << endl << endl;
-	cout << "* -zip filename\t\tCompress" << endl;
-	cout << "\t\t\t-filename" << endl;
-	cout << "\t\t\t-passwd" << endl << endl;
-	cout << "* -unzip filename\tDecompress" << endl;
-	cout << "\t\t\t-filename" << endl;
-	cout << "\t\t\t-passwd" << endl << endl;
+	cout << "* -zip\t\t\tCompress" << endl;
+	cout << "\t\t\tfilename" << endl;
+	cout << "\t\t\tpasswd" << endl << endl;
+	cout << "* -unzip\t\tDecompress" << endl;
+	cout << "\t\t\tfilename" << endl;
+	cout << "\t\t\tpasswd" << endl << endl;
 }
 
 
@@ -300,29 +300,16 @@ string compressText(string &text, HCTNode *root) {
 
 //获得压缩文本的文件名
 string getCompFileName(string fileName) {
-	int len = fileName.length();
-	long long idx = len - 1;
-
-	while (idx >= 0 && fileName[idx] != '.')
-		idx--;
-	if (!idx)
-		return fileName + ".cod";
-
-	return fileName.substr(0, idx) + ".cod";
+	return fileName + ".cod";
 }
 
 
 //获得解压缩文本的文件名
 string getDecompFileName(string fileName) {
-	int len = fileName.length();
-	long long idx = len - 1;
-
-	while (idx >= 0 && fileName[idx] != '.')
-		idx--;
-	if (!idx)
+	int len = fileName.size();
+	if (len < 4 || fileName.substr(len - 4, 4) != ".cod")
 		return fileName + ".txt";
-
-	return fileName.substr(0, idx) + ".txt";
+	return fileName.substr(0, len - 4);
 }
 
 
