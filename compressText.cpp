@@ -260,8 +260,9 @@ HCTNode *getHCodeTree(unordered_map<char, int> &freq) {
 void getHCode(HCTNode *root, string u, unordered_map<char, string> &HCode) {
 	if (!root)
 		return;
-	if (root->ch) {
+	if (!root->left && !root->right) {
 		HCode[root->ch] = u;
+		return;
 	}
 	getHCode(root->left, u + "1", HCode);
 	getHCode(root->right, u + "0", HCode);
@@ -334,7 +335,7 @@ string getOrgText(string &text) {
 	for (long long idx = 0; idx < len; idx++) {
 		tmp = ((compText[idx / 8] & (1 << (idx % 8))) ? orgHArry[tmp->left] : orgHArry[tmp->right]);
 
-		if (tmp->ch) {
+		if (tmp->left == -1 && tmp->right == -1) {
 			orgText.push_back(tmp->ch);
 			tmp = orgHArry[0];
 		}
